@@ -54,7 +54,7 @@ summary(loan.impute$total_rev_hi_lim)
 table(loan.impute$total_rev_hi_lim)
 
 loan.impute$default<-as.logical(0)
-for(i in 1:nrow(loan2)){
+for(i in 1:nrow(loan.impute)){
   if (loan.impute$loan_status[i]=="Fully Paid")
     loan.impute$default[i]<-as.logical(0)
   else if (loan.impute$loan_status[i]=="Does not meet the credit policy. Status:Fully Paid")
