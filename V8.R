@@ -190,7 +190,7 @@ summary(loan_bins$tot_cur_bal_band)
 loan_bins$total_rev_hi_lim_band <- cut(loan_bins$total_rev_hi_lim, c(-1,0,1000,5000,10000,20000,50000,100000,500000,1000000,5000000))
 summary(loan_bins$total_rev_hi_lim_band)
 
-loan_bins$pmnt_months_band <- cut(loan_bins$pmnt_months, c(-2,0,10,20,30,40,50,60,70))
+loan_bins$pmnt_months_band <- cut(loan_bins$pmnt_months, c(-2,-1,0,10,20,30,40,50,60,70))
 summary(loan_bins$pmnt_months_band)
 
 loan_bins$pmnt_diff_band <- cut(loan_bins$pmnt_diff, c(-40,-20,0,10,20,30,40,50,61))
@@ -292,8 +292,9 @@ dataDummy <- dummyVars("~.", data = loan.df, fullRank = F)
 data.dummified <- as.data.frame(predict(dataDummy, loan.df))
 data.dummified$default <- as.factor(data.dummified$default)
 
-index <- sample(1:nrow(data.dummified),(.1)*nrow(data.dummified))
+index <- sample(1:nrow(data.dummified),(.05)*nrow(data.dummified))
 part.dummified <- data.dummified [index, ]
+prop.table(table(part.dummified$default))
 
 outcomeName <- 'default'
 predictorNames <- names(part.dummified)[names(part.dummified) != outcomeName]
@@ -308,3 +309,4 @@ test.df <- part.dummified[-index, ]
 fitControl.rf <- trainControl(method = "none")
 rf <- train(train.df[,predictorNames], train.df[,outcomeName],
             method = 'rf',
+            trControl = fitControl.rf)
