@@ -74,6 +74,7 @@ loan.dates$issue_d <- as.character(loan.dates$issue_d)
 loan.dates$last_credit_pull_d <- as.character(loan.dates$last_credit_pull_d)
 loan.dates$last_pymnt_d <- as.character(loan.dates$last_pymnt_d)
 loan.dates$earliest_cr_line <- as.character(loan.dates$earliest_cr_line)
+loan.dates$earliest_cr_line <- ifelse(is.na(loan.dates$earliest_cr_line), loan.dates$issue_d, loan.dates$earliest_cr_line)
 
 str(loan.dates)
 
@@ -84,6 +85,7 @@ loan.dates$earliest_cr_line <- as.yearmon(loan.dates$earliest_cr_line, "%b-%Y")
 loan.dates$last_credit_pull_d <- as.yearmon(loan.dates$last_credit_pull_d, "%b-%Y")
 loan.dates$pmnt_months <- as.numeric((loan.dates$last_pymnt_d - loan.dates$issue_d) * 12)
 loan.dates$pmnt_months <- as.integer(loan.dates$pmnt_months)
+loan.dates$pmnt_months <- ifelse(is.na(loan.dates$pmnt_months), -1, loan.dates$pmnt_months)
 loan.dates$term <- as.character(loan.dates$term)
 sub.term <- substr(loan.dates$term, start = 1, stop = 3)
 new_T <- as.character(sub.term)
@@ -188,10 +190,10 @@ summary(loan_bins$tot_cur_bal_band)
 loan_bins$total_rev_hi_lim_band <- cut(loan_bins$total_rev_hi_lim, c(-1,0,1000,5000,10000,20000,50000,100000,500000,1000000,5000000))
 summary(loan_bins$total_rev_hi_lim_band)
 
-loan_bins$pmnt_months_band <- cut(loan_bins$pmnt_months, c(-1,0,10,20,30,40,50,60,70))
+loan_bins$pmnt_months_band <- cut(loan_bins$pmnt_months, c(-2,0,10,20,30,40,50,60,70))
 summary(loan_bins$pmnt_months_band)
 
-loan_bins$pmnt_diff_band <- cut(loan_bins$pmnt_diff, c(-40,-20,0,10,20,30,40,50,60))
+loan_bins$pmnt_diff_band <- cut(loan_bins$pmnt_diff, c(-40,-20,0,10,20,30,40,50,61))
 summary(loan_bins$pmnt_diff_band)
 
 loan_bins$loan_amnt <- NULL
@@ -226,6 +228,11 @@ loan_bins$tot_cur_bal <- NULL
 loan_bins$total_rev_hi_lim <- NULL
 loan_bins$pmnt_months <- NULL
 loan_bins$pmnt_diff <- NULL
+loan_bins$issue_d <- NULL
+loan_bins$last_pymnt_d <- NULL
+loan_bins$last_credit_pull_d <- NULL
+loan_bins$earliest_cr_line <- NULL
+loan_bins$policy_code <- NULL
 
 loan.clean <- loan_bins
 str(loan.clean)
@@ -245,7 +252,6 @@ loan.df <- select(loan.clean,
                  zip_code,
                  addr_state,
                  initial_list_status,
-                 policy_code,
                  application_type,
                  loan_amnt_band,
                  funded_amnt_band,
@@ -285,3 +291,20 @@ str(loan.df)
 dataDummy <- dummyVars("~.", data = loan.df, fullRank = F)
 data.dummified <- as.data.frame(predict(dataDummy, loan.df))
 data.dummified$default <- as.factor(data.dummified$default)
+
+index <- sample(1:nrow(data.dummified),(.1)*nrow(data.dummified))
+part.dummified <- data.dummified [index, ]
+
+outcomeName <- 'default'
+predictorNames <- names(part.dummified)[names(part.dummified) != outcomeName]
+
+set.seed(1234)
+split <- (.8)
+index <- createDataPartition(part.dummified$default, p=split, list=FALSE)
+
+train.df <- part.dummified[index, ]
+test.df <- part.dummified[-index, ]
+
+fitControl.rf <- trainControl(method = "none")
+rf <- train(train.df[,predictorNames], train.df[,outcomeName],
+            method = 'rf',
