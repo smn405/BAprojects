@@ -46,12 +46,15 @@ View(dq_num)
 View(dq_cat)
 
 library(caret)
+loan2$delinq_2yrs[is.na(loan2$delinq_2yrs)] <- mean(loan2$delinq_2yrs, na.rm = TRUE)
+loan2$inq_last_6mths[is.na(loan2$inq_last_6mths)] <- mean(loan2$inq_last_6mths, na.rm = TRUE)
+loan2$pub_rec[is.na(loan2$pub_rec)] <- mean(loan2$pub_rec, na.rm = TRUE)
+loan2$acc_now_delinq[is.na(loan2$acc_now_delinq)] <- mean(loan2$acc_now_delinq, na.rm = TRUE)
+loan2$tot_coll_amt[is.na(loan2$tot_coll_amt)] <- mean(loan2$tot_coll_amt, na.rm = TRUE)
 
-total_rev_hi_lim.median <- preProcess(loan2, method = c("medianImpute"))
-loan.impute <- predict(total_rev_hi_lim.median, loan2)
+loan_median <- preProcess(loan2, method = c("medianImpute"))
+loan.impute <- predict(loan_median, loan2)
 sum(is.na(loan.impute)) 
-summary(loan.impute$total_rev_hi_lim)
-table(loan.impute$total_rev_hi_lim)
 
 loan.impute$default<-as.logical(0)
 for(i in 1:nrow(loan.impute)){
@@ -78,6 +81,7 @@ library(zoo)
 loan.dates$issue_d <- as.yearmon(loan.dates$issue_d, "%b-%Y")
 loan.dates$last_pymnt_d <- as.yearmon(loan.dates$last_pymnt_d, "%b-%Y")
 loan.dates$pmnt_months <- as.numeric((loan.dates$last_pymnt_d - loan.dates$issue_d) * 12)
+loan.dates$pmnt_months <- as.integer(loan.dates$pmnt_months)
 loan.dates$term <- as.character(loan.dates$term)
 sub.term <- substr(loan.dates$term, start = 1, stop = 3)
 new_T <- as.character(sub.term)
@@ -85,9 +89,10 @@ new_T <- as.integer(sub.term)
 loan.dates$new_Term <- new_T
 loan.dates$pmnt_diff <- as.numeric(loan.dates$new_Term - loan.dates$pmnt_months)
 loan.dates$term <- as.factor(loan.dates$term)
+str(loan.dates)
 
 #Creating Bins
-
+loan_bins <- loan.dates
 loan_bins$loan_amnt_band <- cut(loan_bins$loan_amnt, c(0,5000,1000,15000,20000,25000,30000,35000))
 summary(loan_bins$loan_amnt_band)
 
@@ -183,5 +188,7 @@ summary(loan_bins$total_rev_hi_lim_band)
 loan_bins$pmnt_months_band <- cut(loan_bins$pmnt_months, c(-1,0,10,20,30,40,50,60,70))
 summary(loan_bins$pmnt_months_band)
 
-loan_bins$pmnt_diff_band <- cut(loan_bins$pmnt_diff, c(-1,0,10,20,30,40,50,60))
+loan_bins$pmnt_diff_band <- cut(loan_bins$pmnt_diff, c(-40,-20,0,10,20,30,40,50,60))
 summary(loan_bins$pmnt_diff_band)
+
+loan_bins$new_Term <- NULL
